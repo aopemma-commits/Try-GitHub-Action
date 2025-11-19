@@ -1,0 +1,4 @@
+# Used for Cache Key
+fastapi
+uvicorn
+pytest
