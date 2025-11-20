@@ -2,17 +2,21 @@ name: 1. CI Build, Test, and Artifacts
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    # Workflow triggers when a PR targets the main branch
+    branches: [main]
+
+# Set permissions for the whole workflow (minimal, with OIDC enabled for future use)
+permissions:
+  contents: read
+  id-token: write 
 
 jobs:
-  # 1. Runs tests across a matrix of Python versions and OS
   ci_test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false # Ensure all matrix combinations run, even if one fails
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ['3.10', '3.11']
@@ -25,44 +29,56 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           
-      # Implement Caching based on requirements.txt hash
-      - name: 📦 Cache Python dependencies
+      # Implement Caching
+      - name: Cache Python dependencies
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
-      - name: ⚙️ Install dependencies
+      - name:️ Install dependencies
         run: pip install -r backend/requirements.txt
 
-      - name: 🧪 Run tests and generate report (for artifact)
-        # Assuming you have a file 'backend/test_api.py'
-        run: pytest backend/ --junitxml=test-results.xml
-        
-      - name: ⬆️ Upload Test Report Artifact
+      # Run tests and generate report
+      # The command must not exit with code 5 if no tests are found.
+      # Adding '--continue-on-collection-errors' makes it robust, but this assumes tests exist.
+      # If no tests are found, the step is allowed to fail to prompt the developer.
+      - name: Run tests and generate report
+        run: pytest backend/ --junitxml=test-results-${{ matrix.python-version }}-${{ matrix.os }}.xml
+
+      #  Upload Test Report Artifact
+      - name: Upload Test Report Artifact
         uses: actions/upload-artifact@v4
         with:
+          # Note: We now use a distinct name based on matrix variables
           name: test-results-${{ matrix.python-version }}-${{ matrix.os }}
-          path: test-results.xml
-          retention-days: 1 # Keep for a short time
+          path: test-results-${{ matrix.python-version }}-${{ matrix.os }}.xml
           
-  # 2. Downloads and aggregates the test report artifact
+  # Job that aggregates all reports
   report_summary:
     runs-on: ubuntu-latest
     needs: ci_test
-    if: always() # Run even if ci_test failed, to report status
+    # This runs even if a matrix job fails, ensuring reporting is always attempted
+    if: always() 
+    
     steps:
-      - name: ⬇️ Download all Test Reports
+      - name:️ Download all Test Reports
         uses: actions/download-artifact@v4
         with:
           path: test-reports
           
-      - name: 📝 Post Summary to PR
-        # This is a placeholder for a complex reporting step
+      - name: Post Summary to PR (Robust Command)
         run: |
           echo "::group::Test Report Summary"
-          ls -R test-reports/
+          # FIXED ISSUE: Use '|| true' to prevent failure if the directory is empty/missing 
+          # (due to failed ci_test jobs or no artifacts)
+          ls -R test-reports/ || true
+          
+          # Report the overall status of the matrix job
+          MATRIX_RESULT="${{ needs.ci_test.result }}"
+          if [ "$MATRIX_RESULT" = "success" ]; then
+            echo "::notice::All tests passed across all matrix configurations."
+          else
+            echo "::error::One or more test configurations FAILED ($MATRIX_RESULT). Check logs."
+          fi
           echo "::endgroup::"
-          echo "Summary: All ${{ needs.ci_test.result }} tests succeeded/failed across all matrices."
