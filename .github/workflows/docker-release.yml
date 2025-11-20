@@ -31,12 +31,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           
       - name: 🏷️ Determine Image Tag
+        id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=sha-
+            # Always tag with a short commit SHA (e.g., ghcr.io/repo/app:sha-abcdef1)
+            type=sha,format=sha-{{sha}}
+            # Tag with :latest only on the main branch
             type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+            # Tag with semantic versioning when a Git tag is pushed
             type=semver,pattern=v{{version}}
 
       - name: 🛠️ Build and Push Docker Image
