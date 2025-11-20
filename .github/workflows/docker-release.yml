@@ -36,11 +36,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Always tag with a short commit SHA (e.g., ghcr.io/repo/app:sha-abcdef1)
+            # FIX: Use the short SHA format which is always available and reliable
             type=sha,format=sha-{{sha}}
-            # Tag with :latest only on the main branch
             type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
-            # Tag with semantic versioning when a Git tag is pushed
             type=semver,pattern=v{{version}}
 
       - name: 🛠️ Build and Push Docker Image
