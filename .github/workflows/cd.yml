@@ -16,7 +16,7 @@ jobs:
       contents: read 
 
     steps:
-      - uses: actions/checkout@a51a8a25c3080c98e21a20822da35043d99cb138
+      - uses: actions/checkout@v4
 
       - name: 🛡️ Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -40,7 +40,7 @@ jobs:
       contents: read 
 
     steps:
-      - uses: actions/checkout@a51a8a25c3080c98e21a20822da35043d99cb138
+      - uses: actions/checkout@v4
       
       - name: 🛡️ Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
