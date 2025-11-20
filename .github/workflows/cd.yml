@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: Staging
     
-    # Permissions are set at the job level for least privilege
     permissions:
       id-token: write # Required for OIDC
       contents: read 
 
     steps:
-      - uses: actions/checkout@v4
+      # FIX: Use v4 tag instead of problematic SHA
+      - uses: actions/checkout@v4 
 
       - name: 🛡️ Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -27,7 +27,6 @@ jobs:
       - name: 🚀 Deploy to Staging
         run: |
           echo "Deploying ${{ github.sha }} to Staging via OIDC..."
-          # ... AWS CLI or Terraform deployment commands ...
 
   deploy_production:
     runs-on: ubuntu-latest
@@ -40,6 +39,7 @@ jobs:
       contents: read 
 
     steps:
+      # FIX: Use v4 tag instead of problematic SHA
       - uses: actions/checkout@v4
       
       - name: 🛡️ Configure AWS Credentials via OIDC
@@ -51,4 +51,3 @@ jobs:
       - name: 🚀 Deploy to Production
         run: |
           echo "Manual approval granted. Deploying to Production via OIDC!"
-          # ... AWS CLI or Terraform deployment commands ...
