@@ -1,0 +1,53 @@
+name: 3. Secure CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy_staging:
+    runs-on: ubuntu-latest
+    environment: Staging
+    
+    permissions:
+      id-token: write # Required for OIDC
+      contents: read 
+
+    steps:
+      # FIX: Use v4 tag instead of problematic SHA
+      - uses: actions/checkout@v4 
+
+      - name: 🛡️ Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_STAGING_DEPLOY_ROLE }} 
+          aws-region: us-east-1
+
+      - name: 🚀 Deploy to Staging
+        run: |
+          echo "Deploying ${{ github.sha }} to Staging via OIDC..."
+
+  deploy_production:
+    runs-on: ubuntu-latest
+    needs: deploy_staging 
+    environment:
+      name: Production
+      
+    permissions:
+      id-token: write
+      contents: read 
+
+    steps:
+      # FIX: Use v4 tag instead of problematic SHA
+      - uses: actions/checkout@v4
+      
+      - name: 🛡️ Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PROD_DEPLOY_ROLE }}
+          aws-region: us-east-1
+          
+      - name: 🚀 Deploy to Production
+        run: |
+          echo "Manual approval granted. Deploying to Production via OIDC!"

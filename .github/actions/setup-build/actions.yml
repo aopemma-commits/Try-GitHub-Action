@@ -1,0 +1,25 @@
+name: 'Custom Build Setup'
+description: 'Sets up Node, Python, and installs common build tools.'
+inputs:
+  node-version:
+    required: true
+    default: '20'
+    description: 'Node.js version to install'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Common Tools
+      shell: bash
+      run: |
+        npm install -g yarn # Install Yarn globally for Node
+        pip install poetry # Install Poetry for Python

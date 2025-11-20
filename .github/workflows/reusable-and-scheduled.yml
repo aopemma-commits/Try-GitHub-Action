@@ -1,0 +1,58 @@
+name: 4. Reusable and Automation Workflows
+
+on:
+  # Scheduled weekly cleanup
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at midnight
+  # Trigger on PR opened for auto-labeling
+  pull_request:
+    types: [opened]
+
+jobs:
+  # 1. Reuse the custom composite action
+  build_with_composite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🛠️ Run Custom Composite Setup
+        # Reference the local action directory
+        uses: ./.github/actions/setup-build
+        with:
+          node-version: '18' # Pass an input to the composite action
+
+      - name: Verify Setup
+        shell: bash
+        run: |
+          node -v
+          python --version
+          yarn --version
+
+  # 2. Automated PR labeling
+  pr_automation:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write # Required for adding labels to issues/PRs
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 🏷️ Apply 'feature' label to new features
+        if: startsWith(github.head_ref, 'feat/')
+        uses: actions/github-script@v7 # Updated to v7 for stability
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['enhancement', 'feature']
+            })
+
+  # 3. Scheduled cleanup job
+  scheduled_cleanup:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: 🧹 Clean up old Docker images (Example)
+        run: |
+          echo "Running scheduled maintenance at $(date)"
+          echo "Cleanup complete."
