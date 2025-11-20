@@ -1,0 +1,90 @@
+
+name: 'Custom Build Setup'
+description: 'Sets up Node, Python, and installs common build tools.'
+inputs:
+  node-version:
+    required: true
+    default: '20'
+    description: 'Node.js version to install'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install Common Tools
+      shell: bash
+      run: |
+        npm install -g yarn # Install Yarn globally for Node
+        pip install poetry # Install Poetry for Python
+
+2. .github/workflows/reusable-and-scheduled.yml (The Workflow)
+
+YAML
+
+
+
+name: 4. Reusable and Automation Workflows
+
+on:
+  # Scheduled weekly cleanup
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at midnight
+  # Trigger on PR opened for auto-labeling
+  pull_request:
+    types: [opened]
+
+jobs:
+  # 1. Reuse the custom composite action
+  build_with_composite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 🛠️ Run Custom Composite Setup
+        # Reference the local action directory
+        uses: ./.github/actions/setup-build 
+        with:
+          node-version: '18' # Pass an input to the composite action
+          
+      - name: Verify Setup
+        run: |
+          node -v
+          python --version
+          yarn --version
+
+  # 2. Automated PR labeling
+  pr_automation:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 🏷️ Apply 'feature' label to new features
+        if: startsWith(github.head_ref, 'feat/')
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['enhancement', 'feature']
+            })
+
+  # 3. Scheduled cleanup job
+  scheduled_cleanup:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: 🧹 Clean up old Docker images (Example)
+        run: |
+          echo "Running scheduled maintenance at $(date)"
+          # Example: Use gh-cli to delete old packages or branches
+          # Replace with actual maintenance commands
+          echo "Cleanup complete."
