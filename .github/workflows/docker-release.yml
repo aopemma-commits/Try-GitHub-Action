@@ -21,7 +21,7 @@ jobs:
       
     steps:
       # Use SHA-pinning for the checkout action for better security and stability
-      - uses: actions/checkout@a51a8a25c3080c98e21a20822da35043d99cb138 
+      - uses: actions/checkout@v4  
       
       - name: 🔑 Log in to GitHub Container Registry
         uses: docker/login-action@v3
